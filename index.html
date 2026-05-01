@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CYPARK — SM Fairview Indoor Parking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#050810;
+  --surface:#0b0f1e;
+  --surface2:#111827;
+  --border:#1e2740;
+  --border2:#2a3654;
+  --accent:#2563eb;
+  --accent2:#3b82f6;
+  --accent-glow:rgba(37,99,235,0.4);
+  --gold:#f59e0b;
+  --text:#f1f5f9;
+  --text2:#94a3b8;
+  --text3:#475569;
+  --green:#10b981;
+  --red:#ef4444;
+  --gradient:linear-gradient(135deg,#2563eb,#0ea5e9);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);}
+body{font-family:'Inter',sans-serif;color:var(--text);}
+
+/* ── LOADING SCREEN ─────────────────────────────────── */
+#loading-screen{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity .7s ease,transform .7s ease;
+}
+#loading-screen.hide{opacity:0;transform:scale(1.05);pointer-events:none;}
+
+.ls-logo-wrap{position:relative;margin-bottom:2.5rem;}
+.ls-logo{width:110px;height:110px;animation:ls-pulse 2.2s ease-in-out infinite;}
+@keyframes ls-pulse{
+  0%,100%{filter:drop-shadow(0 0 18px rgba(37,99,235,.5)) drop-shadow(0 0 40px rgba(37,99,235,.2));}
+  50%{filter:drop-shadow(0 0 35px rgba(37,99,235,.9)) drop-shadow(0 0 70px rgba(59,130,246,.4));}
+}
+.ls-ring{
+  position:absolute;inset:-18px;border-radius:50%;
+  border:2px solid transparent;
+  border-top-color:var(--accent);border-right-color:rgba(59,130,246,.4);
+  animation:spin 1.4s linear infinite;
+}
+.ls-ring2{
+  position:absolute;inset:-30px;border-radius:50%;
+  border:1.5px solid transparent;
+  border-bottom-color:rgba(37,99,235,.3);border-left-color:rgba(14,165,233,.3);
+  animation:spin 2.8s linear infinite reverse;
+}
+.ls-ring3{
+  position:absolute;inset:-44px;border-radius:50%;
+  border:1px solid transparent;
+  border-top-color:rgba(37,99,235,.12);
+  animation:spin 4s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.ls-brand{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:2.8rem;font-weight:700;letter-spacing:5px;
+  background:var(--gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  color:transparent;margin-bottom:.3rem;
+  animation:ls-brand-in .8s ease forwards;
+}
+@keyframes ls-brand-in{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+
+.ls-sub{font-size:.78rem;color:var(--text3);letter-spacing:3px;text-transform:uppercase;margin-bottom:3rem;
+  animation:ls-brand-in .8s .2s ease both;}
+
+/* Progress bar */
+.ls-progress-wrap{width:220px;margin-bottom:1rem;}
+.ls-track{width:100%;height:3px;background:var(--border);border-radius:3px;overflow:hidden;}
+.ls-fill{height:100%;background:var(--gradient);border-radius:3px;width:0;transition:width .4s ease;}
+.ls-dots{display:flex;justify-content:center;gap:6px;margin-top:1rem;}
+.ls-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.3;animation:dot-wave .9s ease-in-out infinite;}
+.ls-dot:nth-child(2){animation-delay:.15s;}
+.ls-dot:nth-child(3){animation-delay:.3s;}
+.ls-dot:nth-child(4){animation-delay:.45s;}
+@keyframes dot-wave{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1.2)}}
+
+.ls-status{font-size:.7rem;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-top:.75rem;
+  min-height:1.2em;transition:opacity .3s;}
+
+/* Animated parking grid on loading screen */
+.ls-park-preview{
+  display:flex;gap:5px;margin-top:2.5rem;
+  animation:ls-brand-in .8s .4s ease both;
+}
+.ls-pslot{
+  width:22px;height:30px;border-radius:3px;border:1px solid rgba(37,99,235,.3);
+  background:rgba(37,99,235,.05);
+  transition:all .4s ease;
+}
+.ls-pslot.taken{background:rgba(37,99,235,.25);border-color:rgba(37,99,246,.6);}
+.ls-pslot.empty{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.3);}
+
+/* ── BACKGROUND EFFECTS ─────────────────────────────── */
+#login-page{position:fixed;inset:0;display:flex;align-items:stretch;opacity:0;transition:opacity .6s .1s;}
+#login-page.visible{opacity:1;}
+
+.hero-panel{
+  flex:1;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#050810 0%,#0a1420 50%,#050d1f 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.hero-panel::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(37,99,235,.1) 0%,transparent 65%);
+}
+.hero-panel::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 40% 40% at 80% 20%,rgba(14,165,233,.06) 0%,transparent 60%);
+}
+
+/* floating particles */
+.particle{
+  position:absolute;border-radius:50%;
+  background:radial-gradient(circle,rgba(37,99,235,.6),transparent);
+  animation:float-particle linear infinite;
+  pointer-events:none;
+}
+@keyframes float-particle{
+  0%{transform:translateY(100vh) scale(0);opacity:0;}
+  10%{opacity:.4;}
+  90%{opacity:.2;}
+  100%{transform:translateY(-10vh) scale(1.5);opacity:0;}
+}
+
+.parking-visual{position:relative;z-index:2;width:400px;}
+.hero-title{position:relative;z-index:2;text-align:center;margin-bottom:2.5rem;
+  animation:hero-in .7s ease both;}
+@keyframes hero-in{from{opacity:0;transform:translateY(-20px);}to{opacity:1;transform:none;}}
+.hero-title h1{
+  font-family:'Space Grotesk',sans-serif;font-size:2.8rem;font-weight:700;
+  background:var(--gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  color:transparent;margin-bottom:.3rem;
+}
+.hero-title .hero-badge{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);
+  border-radius:20px;padding:.25rem .75rem;font-size:.7rem;color:var(--accent2);
+  letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.5rem;
+}
+.hero-title p{font-size:.8rem;color:var(--text3);letter-spacing:2px;text-transform:uppercase;}
+
+.park-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:16px;}
+.park-slot{
+  height:52px;border-radius:6px;border:1px solid;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:.55rem;font-weight:600;letter-spacing:.5px;
+  transition:all .4s cubic-bezier(.34,1.56,.64,1);
+  position:relative;overflow:hidden;cursor:default;
+}
+.park-slot:hover{transform:scale(1.08);}
+.park-slot.empty{border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.07);color:rgba(16,185,129,.8);}
+.park-slot.taken{border-color:rgba(37,99,235,.35);background:rgba(37,99,235,.1);color:rgba(59,130,246,.9);}
+.car-bar{width:24px;height:3px;border-radius:2px;background:currentColor;margin-top:3px;}
+.park-row-label{
+  display:flex;align-items:center;gap:8px;padding:0 16px 6px;
+  font-size:.62rem;color:var(--text3);letter-spacing:1px;text-transform:uppercase;
+}
+.exit-lane{
+  margin:6px 16px;height:24px;border-radius:5px;
+  border:1px dashed rgba(245,158,11,.3);background:rgba(245,158,11,.04);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.62rem;color:rgba(245,158,11,.6);letter-spacing:2px;text-transform:uppercase;
+}
+
+.stat-chips{display:flex;gap:10px;margin-top:2rem;position:relative;z-index:2;flex-wrap:wrap;justify-content:center;
+  animation:hero-in .7s .3s ease both;}
+.chip{
+  background:rgba(11,15,30,.85);backdrop-filter:blur(12px);
+  border:1px solid var(--border);border-radius:12px;
+  padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem;
+  transition:all .3s ease;cursor:default;
+}
+.chip:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,99,235,.15);}
+.chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;animation:dot-pulse 2s ease-in-out infinite;}
+@keyframes dot-pulse{0%,100%{box-shadow:0 0 4px currentColor;}50%{box-shadow:0 0 12px currentColor;}}
+.chip-dot.green{background:var(--green);color:var(--green);}
+.chip-dot.blue{background:var(--accent2);color:var(--accent2);}
+.chip-text{font-size:.7rem;color:var(--text2);}
+.chip-val{font-size:.85rem;font-weight:700;color:var(--text);}
+
+/* ── AUTH PANEL ─────────────────────────────── */
+.auth-panel{
+  width:440px;flex-shrink:0;
+  background:var(--surface);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;
+  animation:auth-slide-in .6s .1s ease both;
+}
+@keyframes auth-slide-in{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:none;}}
+.auth-inner{padding:2.5rem 2rem;flex:1;display:flex;flex-direction:column;justify-content:center;}
+
+.auth-logo{display:flex;align-items:center;gap:.8rem;margin-bottom:2.5rem;}
+.auth-logo-img{width:44px;height:44px;border-radius:11px;flex-shrink:0;
+  box-shadow:0 0 0 1px var(--border),0 4px 16px rgba(37,99,235,.2);}
+.auth-logo-text h2{
+  font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;
+  background:var(--gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  color:transparent;
+}
+.auth-logo-text p{font-size:.65rem;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;}
+
+.tab-row{display:flex;background:var(--surface2);border-radius:10px;padding:4px;gap:4px;margin-bottom:2rem;border:1px solid var(--border);}
+.tab{flex:1;padding:.6rem;text-align:center;border-radius:7px;cursor:pointer;
+  font-size:.82rem;font-weight:600;color:var(--text3);transition:all .25s cubic-bezier(.34,1.56,.64,1);
+  font-family:'Space Grotesk',sans-serif;letter-spacing:.3px;}
+.tab.active{background:var(--accent);color:#fff;box-shadow:0 4px 14px var(--accent-glow);}
+.tab:hover:not(.active){color:var(--text);background:rgba(255,255,255,.05);transform:scale(1.02);}
+
+.section-title{font-size:1.3rem;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-bottom:.3rem;}
+.section-sub{font-size:.8rem;color:var(--text3);margin-bottom:1.75rem;}
+
+.fg{margin-bottom:1.1rem;position:relative;}
+.fl{display:block;font-size:.7rem;color:var(--text3);font-weight:500;letter-spacing:.5px;text-transform:uppercase;margin-bottom:.45rem;}
+.fi{
+  width:100%;padding:.75rem 1rem;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:.9rem;
+  font-family:'Inter',sans-serif;outline:none;
+  transition:all .25s ease;
+}
+.fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.15);background:rgba(17,24,39,.8);}
+.fi::placeholder{color:var(--text3);}
+.fi:focus + .fi-glow{opacity:1;}
+.fi-glow{
+  position:absolute;bottom:-1px;left:10%;right:10%;height:1px;
+  background:var(--gradient);border-radius:1px;opacity:0;transition:opacity .25s;
+}
+
+.btn-primary{
+  width:100%;padding:.875rem;border:none;border-radius:10px;
+  background:var(--gradient);color:#fff;
+  font-weight:700;font-size:.9rem;font-family:'Space Grotesk',sans-serif;
+  cursor:pointer;transition:all .25s cubic-bezier(.34,1.56,.64,1);letter-spacing:.5px;
+  position:relative;overflow:hidden;
+}
+.btn-primary::before{
+  content:'';position:absolute;top:50%;left:50%;width:0;height:0;
+  background:rgba(255,255,255,.15);border-radius:50%;transform:translate(-50%,-50%);
+  transition:width .4s ease,height .4s ease;
+}
+.btn-primary:active::before{width:300px;height:300px;}
+.btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 28px var(--accent-glow);}
+.btn-primary:active:not(:disabled){transform:translateY(0) scale(.98);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+
+.error-msg{
+  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);
+  border-radius:8px;padding:.65rem 1rem;font-size:.8rem;color:var(--red);
+  margin-bottom:1rem;display:none;
+  animation:fade-in .3s ease;
+}
+.success-msg{
+  background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);
+  border-radius:8px;padding:.65rem 1rem;font-size:.8rem;color:var(--green);
+  margin-bottom:1rem;display:none;
+  animation:fade-in .3s ease;
+}
+@keyframes fade-in{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+
+.hint-box{
+  margin-top:1.5rem;background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.15);
+  border-radius:10px;padding:.875rem 1rem;
+}
+.hint-box p{font-size:.75rem;color:var(--text3);}
+.hint-box strong{color:var(--accent2);}
+
+#registerForm{display:none;}
+
+/* transition loader */
+#loader{
+  position:fixed;inset:0;z-index:8888;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .35s;
+}
+#loader.show{opacity:1;pointer-events:all;}
+.loader-logo{
+  font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:700;
+  background:var(--gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  color:transparent;letter-spacing:3px;margin-bottom:2rem;
+}
+.loader-dots{display:flex;gap:8px;}
+.loader-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:dot-bounce .8s ease-in-out infinite;}
+.loader-dot:nth-child(2){animation-delay:.15s;}
+.loader-dot:nth-child(3){animation-delay:.3s;}
+@keyframes dot-bounce{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+.loader-text{margin-top:1.5rem;font-size:.78rem;color:var(--text3);letter-spacing:1px;}
+
+@media(max-width:900px){
+  .hero-panel{display:none;}
+  .auth-panel{width:100%;animation:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOADING SCREEN ── -->
+<div id="loading-screen">
+  <div class="ls-logo-wrap">
+    <div class="ls-ring"></div>
+    <div class="ls-ring2"></div>
+    <div class="ls-ring3"></div>
+    <svg class="ls-logo" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="60" cy="60" r="57" fill="#0b0f1e" stroke="#2563eb" stroke-width="2"/>
+      <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(37,99,235,.15)" stroke-width="1"/>
+      <rect x="34" y="40" width="52" height="38" rx="11" fill="#1e3a8a"/>
+      <rect x="40" y="46" width="40" height="26" rx="6.5" fill="#2563eb"/>
+      <rect x="44" y="48" width="32" height="11" rx="3" fill="#93c5fd" opacity=".85"/>
+      <rect x="44" y="63" width="32" height="7" rx="2" fill="#93c5fd" opacity=".45"/>
+      <rect x="34" y="44" width="9" height="7" rx="2.5" fill="#fbbf24" opacity=".9"/>
+      <rect x="77" y="44" width="9" height="7" rx="2.5" fill="#fbbf24" opacity=".9"/>
+      <rect x="34" y="67" width="9" height="7" rx="2.5" fill="#ef4444" opacity=".85"/>
+      <rect x="77" y="67" width="9" height="7" rx="2.5" fill="#ef4444" opacity=".85"/>
+      <rect x="27" y="46" width="11" height="13" rx="4" fill="#374151"/>
+      <rect x="82" y="46" width="11" height="13" rx="4" fill="#374151"/>
+      <rect x="27" y="61" width="11" height="13" rx="4" fill="#374151"/>
+      <rect x="82" y="61" width="11" height="13" rx="4" fill="#374151"/>
+      <text x="60" y="109" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10.5" font-weight="700" fill="#2563eb" letter-spacing="2.5">CYPARK</text>
+    </svg>
+  </div>
+  <div class="ls-brand">CYPARK</div>
+  <div class="ls-sub">SM Fairview Indoor Parking</div>
+  <div class="ls-progress-wrap">
+    <div class="ls-track"><div class="ls-fill" id="ls-fill"></div></div>
+    <div class="ls-dots">
+      <div class="ls-dot"></div><div class="ls-dot"></div>
+      <div class="ls-dot"></div><div class="ls-dot"></div>
+    </div>
+  </div>
+  <div class="ls-status" id="ls-status">Initializing...</div>
+  <div class="ls-park-preview" id="ls-park-preview"></div>
+</div>
+
+<div id="loader">
+  <div class="loader-logo">CYPARK</div>
+  <div class="loader-dots">
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+  </div>
+  <div class="loader-text" id="loader-text">Verifying credentials...</div>
+</div>
+
+<div id="login-page">
+  <div class="hero-panel" id="hero-panel">
+    <!-- Particles injected by JS -->
+    <div class="hero-title">
+      <div class="hero-badge">
+        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="#10b981"/></svg>
+        System Online
+      </div>
+      <h1>CYPARK</h1>
+      <p>SM Fairview Indoor Parking</p>
+    </div>
+    <div class="parking-visual">
+      <div class="park-row-label">
+        <span style="width:7px;height:7px;background:#10b981;border-radius:50%;display:inline-block;"></span>
+        Ground Floor — North Wing
+      </div>
+      <div class="park-grid" id="hero-slots"></div>
+      <div class="exit-lane">▲ Entry / Exit Lane ▲</div>
+      <div class="park-row-label">
+        <span style="width:7px;height:7px;background:#2563eb;border-radius:50%;display:inline-block;"></span>
+        South Wing
+      </div>
+      <div class="park-grid" id="hero-slots2"></div>
+    </div>
+    <div class="stat-chips">
+      <div class="chip">
+        <div class="chip-dot green"></div>
+        <div>
+          <div class="chip-text">Available</div>
+          <div class="chip-val" id="chip-vacant">--</div>
+        </div>
+      </div>
+      <div class="chip">
+        <div class="chip-dot blue"></div>
+        <div>
+          <div class="chip-text">Occupied</div>
+          <div class="chip-val" id="chip-occupied">--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-panel">
+    <div class="auth-inner">
+      <div class="auth-logo">
+        <div style="position:relative;width:44px;height:44px;flex-shrink:0;">
+          <div style="position:absolute;inset:-8px;border-radius:50%;border:1.5px solid transparent;border-top-color:var(--accent);animation:spin 1.4s linear infinite;"></div>
+          <div style="position:absolute;inset:-13px;border-radius:50%;border:1px solid transparent;border-bottom-color:rgba(37,99,235,.3);animation:spin 2.8s linear infinite reverse;"></div>
+          <svg style="width:44px;height:44px;border-radius:11px;box-shadow:0 0 0 1px var(--border),0 4px 16px rgba(37,99,235,.2);animation:ls-pulse 2.2s ease-in-out infinite;" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="60" cy="60" r="57" fill="#0b0f1e" stroke="#2563eb" stroke-width="2"/>
+            <rect x="34" y="40" width="52" height="38" rx="11" fill="#1e3a8a"/>
+            <rect x="40" y="46" width="40" height="26" rx="6.5" fill="#2563eb"/>
+            <rect x="44" y="48" width="32" height="11" rx="3" fill="#93c5fd" opacity=".85"/>
+            <rect x="44" y="63" width="32" height="7" rx="2" fill="#93c5fd" opacity=".45"/>
+            <rect x="34" y="44" width="9" height="7" rx="2.5" fill="#fbbf24" opacity=".9"/>
+            <rect x="77" y="44" width="9" height="7" rx="2.5" fill="#fbbf24" opacity=".9"/>
+            <rect x="34" y="67" width="9" height="7" rx="2.5" fill="#ef4444" opacity=".85"/>
+            <rect x="77" y="67" width="9" height="7" rx="2.5" fill="#ef4444" opacity=".85"/>
+            <text x="60" y="109" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10.5" font-weight="700" fill="#2563eb" letter-spacing="2.5">CYPARK</text>
+          </svg>
+        </div>
+        <div class="auth-logo-text">
+          <h2>CYPARK</h2>
+          <p>Smart Parking System</p>
+        </div>
+      </div>
+
+      <div class="tab-row">
+        <div class="tab active" id="tab-login" onclick="switchTab('login')">Sign In</div>
+        <div class="tab" id="tab-register" onclick="switchTab('register')">Register</div>
+      </div>
+
+      <div id="loginForm">
+        <div class="section-title">Welcome back</div>
+        <div class="section-sub">Sign in with your email address</div>
+        <div class="error-msg" id="login-err"></div>
+        <div class="fg">
+          <label class="fl">Email Address</label>
+          <input class="fi" type="email" id="login-user" placeholder="Enter your email address" autocomplete="email">
+          <div class="fi-glow"></div>
+        </div>
+        <div class="fg">
+          <label class="fl">Password</label>
+          <input class="fi" type="password" id="login-pass" placeholder="Enter your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+          <div class="fi-glow"></div>
+        </div>
+        <button class="btn-primary" onclick="doLogin()" id="login-btn">Sign In</button>
+        <div style="text-align:right;margin-top:.6rem;">
+          <button onclick="openForgotModal()" style="background:none;border:none;color:var(--accent2);font-size:.78rem;cursor:pointer;font-family:'Inter',sans-serif;padding:.2rem 0;">Forgot Password?</button>
+        </div>
+
+      </div>
+
+      <div id="registerForm">
+        <div class="section-title">Create account</div>
+        <div class="section-sub">Join CYPARK to manage your parking</div>
+        <div class="error-msg" id="reg-err"></div>
+        <div class="success-msg" id="reg-ok">Account created! You can now sign in.</div>
+        <div class="fg">
+          <label class="fl">Full Name</label>
+          <input class="fi" type="text" id="reg-name" placeholder="Your full name">
+          <div class="fi-glow"></div>
+        </div>
+        <div class="fg">
+          <label class="fl">Username</label>
+          <input class="fi" type="text" id="reg-user" placeholder="Choose a username">
+          <div class="fi-glow"></div>
+        </div>
+        <div class="fg">
+          <label class="fl">Email</label>
+          <input class="fi" type="email" id="reg-email" placeholder="your@email.com">
+          <div class="fi-glow"></div>
+        </div>
+        <div class="fg">
+          <label class="fl">Password</label>
+          <input class="fi" type="password" id="reg-pass" placeholder="Choose a strong password">
+          <div class="fi-glow"></div>
+        </div>
+        <button class="btn-primary" onclick="doRegister()" id="reg-btn">Create Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/store.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="js/qr.js"></script>
+<script src="js/api.js"></script>
+<script>
+// ── SOUND ENGINE ──────────────────────────────────────────────
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let actx=null;
+function getCtx(){if(!actx)actx=new AudioCtx();return actx;}
+function playClick(){try{const c=getCtx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;o.type='sine';g.gain.setValueAtTime(0.1,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.08);o.start(c.currentTime);o.stop(c.currentTime+0.08);}catch(e){}}
+function playSuccess(){try{const c=getCtx();[523,659,784].forEach((freq,i)=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=freq;const t=c.currentTime+i*0.1;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.09,t+0.03);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);o.start(t);o.stop(t+0.18);});}catch(e){}}
+function playError(){try{const c=getCtx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=200;o.type='sawtooth';g.gain.setValueAtTime(0.07,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.25);o.start(c.currentTime);o.stop(c.currentTime+0.25);}catch(e){}}
+function playStartup(){try{const c=getCtx();[261,329,392,523].forEach((freq,i)=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=freq;const t=c.currentTime+i*0.14;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.06,t+0.04);g.gain.exponentialRampToValueAtTime(0.001,t+0.22);o.start(t);o.stop(t+0.22);});}catch(e){}}
+document.addEventListener('click',e=>{if(e.target.matches('.tab,.btn-primary'))playClick();},true);
+
+// ── SESSION CHECK ─────────────────────────────────────────────
+const savedSession=sessionStorage.getItem('cypark_session');
+if(savedSession){
+  try{const s=JSON.parse(savedSession);if(s&&s.username)location.href='dashboard.html';}catch(e){}
+}
+
+// ── PARTICLES ─────────────────────────────────────────────────
+function spawnParticles(){
+  const panel=document.getElementById('hero-panel');
+  for(let i=0;i<12;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    const sz=Math.random()*4+2;
+    p.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;
+      animation-duration:${Math.random()*14+8}s;
+      animation-delay:${Math.random()*10}s;
+      opacity:${Math.random()*0.3+0.05};`;
+    panel.appendChild(p);
+  }
+}
+spawnParticles();
+
+// ── LOADING SCREEN ────────────────────────────────────────────
+const statusSteps=[
+  {msg:'Initializing system...',pct:15},
+  {msg:'Connecting to database...',pct:35},
+  {msg:'Loading slot map...',pct:55},
+  {msg:'Preparing SM Fairview...',pct:78},
+  {msg:'Almost ready...',pct:92},
+  {msg:'System ready.',pct:100},
+];
+let lsIdx=0;
+const lsFill=document.getElementById('ls-fill');
+const lsStatus=document.getElementById('ls-status');
+
+// Animate parking preview dots
+const lsPrev=document.getElementById('ls-park-preview');
+const lsSlots=[0,1,0,1,1,0,1,0,0,1,0,1];
+lsSlots.forEach((t,i)=>{
+  const d=document.createElement('div');
+  d.className='ls-pslot '+(t?'taken':'empty');
+  d.style.animationDelay=i*80+'ms';
+  lsPrev.appendChild(d);
+});
+
+function advanceLS(){
+  if(lsIdx>=statusSteps.length)return;
+  const step=statusSteps[lsIdx++];
+  lsStatus.textContent=step.msg;
+  lsFill.style.width=step.pct+'%';
+  if(lsIdx<statusSteps.length)setTimeout(advanceLS,380+Math.random()*150);
+}
+setTimeout(advanceLS,200);
+setTimeout(()=>playStartup(),300);
+
+setTimeout(()=>{
+  lsFill.style.width='100%';
+  lsStatus.textContent='System ready.';
+  setTimeout(()=>{
+    document.getElementById('loading-screen').classList.add('hide');
+    document.getElementById('login-page').classList.add('visible');
+    setTimeout(()=>document.getElementById('loading-screen').remove(),800);
+  },400);
+},2200);
+
+// ── SLOT GRID ─────────────────────────────────────────────────
+function buildGrid(containerId,count,takenArr){
+  const container=document.getElementById(containerId);
+  container.innerHTML='';
+  for(let i=0;i<count;i++){
+    const div=document.createElement('div');
+    const taken=takenArr.includes(i);
+    div.className='park-slot '+(taken?'taken':'empty');
+    div.style.animationDelay=(i*40)+'ms';
+    if(taken){div.innerHTML='<div style="width:22px;height:13px;background:currentColor;border-radius:3px;opacity:.85;"></div><div class="car-bar"></div>';}
+    else{div.innerHTML='<div style="font-size:.5rem;opacity:.5;letter-spacing:.5px;">OPEN</div>';}
+    container.appendChild(div);
+  }
+}
+
+function loadSlotPreview(){
+  try{
+    const slots=Store.getSlots();
+    const north=slots.filter(s=>s.floor==='A'&&s.zone==='North');
+    const south=slots.filter(s=>s.floor==='A'&&s.zone==='South');
+    const oN=north.map((s,i)=>s.occupied?i:-1).filter(i=>i>=0);
+    const oS=south.map((s,i)=>s.occupied?i:-1).filter(i=>i>=0);
+    buildGrid('hero-slots',10,oN);
+    buildGrid('hero-slots2',10,oS);
+    const total=slots.length,occ=slots.filter(s=>s.occupied).length;
+    document.getElementById('chip-vacant').textContent=total-occ;
+    document.getElementById('chip-occupied').textContent=occ;
+  }catch(e){
+    buildGrid('hero-slots',10,[1,3,6]);
+    buildGrid('hero-slots2',10,[0,4,7,9]);
+    document.getElementById('chip-vacant').textContent='17';
+    document.getElementById('chip-occupied').textContent='13';
+  }
+}
+
+// ── AUTH ──────────────────────────────────────────────────────
+function switchTab(t){
+  playClick();
+  document.getElementById('loginForm').style.display=t==='login'?'block':'none';
+  document.getElementById('registerForm').style.display=t==='register'?'block':'none';
+  document.getElementById('tab-login').classList.toggle('active',t==='login');
+  document.getElementById('tab-register').classList.toggle('active',t==='register');
+}
+
+async function doLogin(){
+  const btn=document.getElementById('login-btn');
+  const err=document.getElementById('login-err');
+  const u=document.getElementById('login-user').value.trim();
+  const p=document.getElementById('login-pass').value;
+  if(!u||!p){showErr(err,'Please fill in all fields');playError();return;}
+  btn.disabled=true;btn.textContent='Signing in...';err.style.display='none';
+  await new Promise(resolve=>Store.onReady(resolve));
+  try{
+    const d=await API.login(u,p);
+    if(d.ok){
+      playSuccess();
+      btn.textContent='✓ Access Granted';
+      const _sess=JSON.stringify({username:d.username,role:d.role,name:d.name});sessionStorage.setItem('cypark_session',_sess);try{localStorage.setItem('cypark_session_fb',_sess);}catch(e){}
+      const loader=document.getElementById('loader');
+      document.getElementById('loader-text').textContent=`Welcome, ${d.name}. Loading dashboard...`;
+      loader.classList.add('show');
+      setTimeout(()=>location.href='dashboard.html',1500);
+    }else{
+      playError();showErr(err,d.msg);
+      btn.disabled=false;btn.textContent='Sign In';
+    }
+  }catch(e){
+    playError();showErr(err,'Connection error. Please try again.');
+    btn.disabled=false;btn.textContent='Sign In';
+  }
+}
+
+async function doRegister(){
+  const btn=document.getElementById('reg-btn');
+  const err=document.getElementById('reg-err');
+  const ok=document.getElementById('reg-ok');
+  err.style.display='none';ok.style.display='none';
+  const name=document.getElementById('reg-name').value.trim();
+  const u=document.getElementById('reg-user').value.trim();
+  const em=document.getElementById('reg-email').value.trim();
+  const p=document.getElementById('reg-pass').value;
+  if(!name||!u||!p){showErr(err,'Name, username and password are required');playError();return;}
+  btn.disabled=true;btn.textContent='Creating account...';
+  await new Promise(resolve=>Store.onReady(resolve));
+  try{
+    const d=await API.register({name,username:u,email:em,password:p});
+    if(d.ok){
+      playSuccess();ok.style.display='block';
+      btn.textContent='✓ Done — Sign in now';
+      setTimeout(()=>switchTab('login'),1800);
+    }else{
+      playError();showErr(err,d.msg);
+      btn.disabled=false;btn.textContent='Create Account';
+    }
+  }catch(e){
+    playError();showErr(err,'Connection error.');
+    btn.disabled=false;btn.textContent='Create Account';
+  }
+}
+
+function showErr(el,msg){el.textContent=msg;el.style.display='block';setTimeout(()=>el.style.display='none',4200);}
+
+Store.onReady(()=>{loadSlotPreview();});
+</script>
+
+<!-- FORGOT PASSWORD MODAL -->
+<div id="forgotModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:2rem;width:360px;max-width:90vw;position:relative;animation:auth-slide-in .3s ease both;">
+    <button onclick="closeForgotModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
+    <div style="margin-bottom:1.5rem;">
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:1.2rem;font-weight:700;margin-bottom:.3rem;">Reset Password</div>
+      <div style="font-size:.78rem;color:var(--text3);">Enter your registered email address to reset your password</div>
+    </div>
+    <div class="error-msg" id="forgot-err" style="display:none;"></div>
+    <div class="success-msg" id="forgot-ok" style="display:none;"></div>
+    <div class="fg">
+      <label class="fl">Email Address</label>
+      <input class="fi" type="email" id="forgot-user" placeholder="Enter your email address" autocomplete="email">
+      <div class="fi-glow"></div>
+    </div>
+    <div class="fg" id="forgot-newpass-wrap" style="display:none;">
+      <label class="fl">New Password</label>
+      <input class="fi" type="password" id="forgot-newpass" placeholder="Enter new password" onkeydown="if(event.key==='Enter')doForgotReset()">
+      <div class="fi-glow"></div>
+    </div>
+    <div class="fg" id="forgot-confirm-wrap" style="display:none;">
+      <label class="fl">Confirm Password</label>
+      <input class="fi" type="password" id="forgot-confirm" placeholder="Confirm new password" onkeydown="if(event.key==='Enter')doForgotReset()">
+      <div class="fi-glow"></div>
+    </div>
+    <button class="btn-primary" id="forgot-btn" onclick="doForgotStep()">Find Account</button>
+  </div>
+</div>
+
+<script>
+function openForgotModal(){
+  document.getElementById('forgotModal').style.display='flex';
+  document.getElementById('forgot-user').value='';
+  document.getElementById('forgot-newpass').value='';
+  document.getElementById('forgot-confirm').value='';
+  document.getElementById('forgot-err').style.display='none';
+  document.getElementById('forgot-ok').style.display='none';
+  document.getElementById('forgot-newpass-wrap').style.display='none';
+  document.getElementById('forgot-confirm-wrap').style.display='none';
+  document.getElementById('forgot-btn').textContent='Find Account';
+  document.getElementById('forgot-btn').onclick=doForgotStep;
+  document.getElementById('forgot-user').disabled=false;
+  setTimeout(()=>document.getElementById('forgot-user').focus(),100);
+}
+function closeForgotModal(){document.getElementById('forgotModal').style.display='none';}
+function doForgotStep(){
+  const u=document.getElementById('forgot-user').value.trim();
+  if(!u){showForgotErr('Please enter your username');return;}
+  // Check if user exists
+  const users=Store.getUsers?Store.getUsers():null;
+  let foundUser=null;
+  if(users){foundUser=users.find(x=>x.email&&x.email.toLowerCase()===u)||users.find(x=>x.username===u);}
+  if(!foundUser){showForgotErr('Email not found. Please check and try again.');playError();return;}
+  // Store the actual username for password reset
+  document.getElementById('forgot-user').dataset.username=foundUser.username;
+  // Show password fields
+  document.getElementById('forgot-newpass-wrap').style.display='block';
+  document.getElementById('forgot-confirm-wrap').style.display='block';
+  document.getElementById('forgot-user').disabled=true;
+  document.getElementById('forgot-btn').textContent='Reset Password';
+  document.getElementById('forgot-btn').onclick=doForgotReset;
+  document.getElementById('forgot-ok').style.display='block';
+  document.getElementById('forgot-ok').textContent='Account found! Enter your new password below.';
+  setTimeout(()=>document.getElementById('forgot-newpass').focus(),100);
+}
+function doForgotReset(){
+  const u=document.getElementById('forgot-user').dataset.username||document.getElementById('forgot-user').value.trim();
+  const np=document.getElementById('forgot-newpass').value;
+  const cp=document.getElementById('forgot-confirm').value;
+  document.getElementById('forgot-ok').style.display='none';
+  if(!np||np.length<4){showForgotErr('Password must be at least 4 characters.');return;}
+  if(np!==cp){showForgotErr('Passwords do not match.');return;}
+  try{
+    const d=API.changePassword?API.changePassword(u,np):null;
+    if(d&&!d.ok){showForgotErr(d.msg||'Could not reset password.');playError();return;}
+    // Fallback: update via Store directly
+    if(!d){
+      const users=Store._data?.users||[];
+      const idx=users.findIndex(x=>x.username===u);
+      if(idx>=0){users[idx].password=np;Store.save?.();}
+    }
+  }catch(e){}
+  playSuccess();
+  document.getElementById('forgot-err').style.display='none';
+  document.getElementById('forgot-ok').style.display='block';
+  document.getElementById('forgot-ok').textContent='✓ Password reset successfully! You can now sign in.';
+  document.getElementById('forgot-newpass-wrap').style.display='none';
+  document.getElementById('forgot-confirm-wrap').style.display='none';
+  document.getElementById('forgot-btn').textContent='✓ Done';
+  document.getElementById('forgot-btn').disabled=true;
+  setTimeout(()=>{closeForgotModal();switchTab('login');},2000);
+}
+function showForgotErr(msg){
+  const e=document.getElementById('forgot-err');
+  e.textContent=msg;e.style.display='block';
+  setTimeout(()=>e.style.display='none',4000);
+}
+// Close modal on backdrop click
+document.getElementById('forgotModal').addEventListener('click',function(e){
+  if(e.target===this)closeForgotModal();
+});
+</script>
+</body>
+</html>
